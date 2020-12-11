@@ -101,7 +101,9 @@ class NimAI():
         Return the Q-value for the state `state` and the action `action`.
         If no Q-value exists yet in `self.q`, return 0.
         """
-        raise NotImplementedError
+        if (tuple(state), action) in self.q:
+            return self.q[tuple(state), action]
+        return 0
 
     def update_q_value(self, state, action, old_q, reward, future_rewards):
         """
@@ -118,7 +120,8 @@ class NimAI():
         `alpha` is the learning rate, and `new value estimate`
         is the sum of the current reward and estimated future rewards.
         """
-        raise NotImplementedError
+        new_value_estimate = reward + future_rewards
+        self.q[tuple(state), action] = old_q + self.alpha * (new_value_estimate - old_q)
 
     def best_future_reward(self, state):
         """
@@ -130,7 +133,23 @@ class NimAI():
         Q-value in `self.q`. If there are no available actions in
         `state`, return 0.
         """
-        raise NotImplementedError
+        actions = []
+        for i, pile in enumerate(state):
+            for j in range(1, pile + 1):
+                actions.append((i, j))
+
+        if not actions:
+            return 0
+
+        rewards = []
+
+        for action in actions:
+            pair = (tuple(state), action)
+            if pair in self.q:
+                rewards.append(self.q[pair])
+            else:
+                rewards.append(0)
+        return max(rewards)
 
     def choose_action(self, state, epsilon=True):
         """
@@ -147,7 +166,27 @@ class NimAI():
         If multiple actions have the same Q-value, any of those
         options is an acceptable return value.
         """
-        raise NotImplementedError
+        actions = []
+        for i, pile in enumerate(state):
+            for j in range(1, pile + 1):
+                actions.append((i, j))
+        
+        rewards = []
+
+        for action in actions:
+            pair = (tuple(state), action)
+            if pair in self.q:
+                rewards.append(self.q[pair])
+            else:
+                rewards.append(0)
+
+        best = actions[rewards.index(max(rewards))]
+
+        if epsilon:
+            choice = random.choices((best, random.choice(actions)), 
+                weights=(1 - self.epsilon, self.epsilon), k=1)
+            return choice.pop()
+        return best
 
 
 def train(n):
